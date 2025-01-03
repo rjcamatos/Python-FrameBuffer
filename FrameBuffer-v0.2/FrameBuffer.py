@@ -326,9 +326,9 @@ class FrameBuffer:
                 if c > self._window._windowColumns-1 : break
                 startOffset = self._getOffset(xPos+c,yPos+r)
                 startOffset = int(self._flipH*(startOffset[0]))+int(self._flipV*(startOffset[1]))
-                data = int.from_bytes(rawBytes[sRow + sCol:sRow + sCol+self._window._bytes]).to_bytes(self._window._bytes,'big')
+                #data = int.from_bytes(rawBytes[sRow + sCol:sRow + sCol+self._window._bytes]).to_bytes(self._window._bytes) #fix endianess
                 for nByte in range(self._window._bytes):
-                    self._window._windowBuffer[startOffset+nByte] = data[nByte]
+                    self._window._windowBuffer[startOffset+nByte] = rawBytes[sRow + sCol + nByte]
                 sCol += self._window._bytes
             sRow += width * self._window._bytes
         self._flipV *= -1

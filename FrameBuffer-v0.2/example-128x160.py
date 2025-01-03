@@ -43,7 +43,6 @@ def img128x160():
     data.restoreColor(True)
 
     data.flush()
-
     
     data.setColor(255,255,0)
     data.setColor(0,255,0,True)
