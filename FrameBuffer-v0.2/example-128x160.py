@@ -55,8 +55,11 @@ def img128x160():
     data.setColor(200,255,255)
     data.setRotation(30,64,80)
 
+    data.setWindow(10,50,10,50,True)
+    data.loadImage(0,0,'./FrameBuffer-v0.2/dog.bmp')
     data.flush()
     data.saveBitmap('output-128x160.bmp')
+
 
     end_time = time.time()
 

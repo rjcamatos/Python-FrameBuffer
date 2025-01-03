@@ -316,13 +316,29 @@ class FrameBuffer:
             
             angle += inc
 
+    def loadRaw(self,xPos,yPos,width,height,rawBytes):
+        self._flipV *= -1
+        sRow = 0
+        for r in range(height):
+            if r > self._window._windowRows-1: break
+            sCol = 0
+            for c in range(width):
+                if c > self._window._windowColumns-1 : break
+                startOffset = self._getOffset(xPos+c,yPos+r)
+                startOffset = int(self._flipH*(startOffset[0]))+int(self._flipV*(startOffset[1]))
+                data = int.from_bytes(rawBytes[sRow + sCol:sRow + sCol+self._window._bytes]).to_bytes(self._window._bytes,'big')
+                for nByte in range(self._window._bytes):
+                    self._window._windowBuffer[startOffset+nByte] = data[nByte]
+                sCol += self._window._bytes
+            sRow += width * self._window._bytes
+        self._flipV *= -1
 
     def loadImage(self,xPos,yPos,file):
         image = open(file,'rb')
 
-        image.seek(14) #jump to dib header
+        bmp_header = struct.unpack_from('<2sI2s2sI',image.read(14))
         dib_header = struct.unpack_from('<IIIHHIIIIII',image.read(40))
-
+   
         if dib_header[4] != self._window._bits:
             image.close()
             print("loadImage() WARNING: not same Bit depth !!!")
@@ -332,17 +348,7 @@ class FrameBuffer:
         height = dib_header[2]
         raw = image.read()
         image.close()
-
-        self._flipV *= -1
-        for r in range(height):
-            if r > self._window._windowRows: break
-            for c in range(width):
-                if c > self._window._windowColumns : break
-                startOffset = self._getOffset(xPos+c,yPos+r)
-                startOffset = int(self._flipH*(startOffset[0]))+int(self._flipV*(startOffset[1]))
-                for nByte in range(self._window._bytes):
-                    self._window._windowBuffer[startOffset+nByte] = raw[ (r*width)*self._window._bytes + (c)*self._window._bytes + nByte]
-        self._flipV *= -1
+        self.loadRaw(xPos,yPos,width,height,raw)
 
 
     def loadFont(self,file,debug=False):
@@ -382,7 +388,7 @@ class FrameBuffer:
         atCol = charIndex - self._charTableMatrix[0]*atRow
 
         self.setThikness(0)
-        sRow = atRow * self._charTableCharWidth * self._charTableWidth * self._window._bytes        
+        sRow = atRow * self._charTableCharWidth * self._charTableWidth * self._window._bytes
         for r in range(self._charTableCharHeight):
             sRow += self._charTableWidth * self._window._bytes
             sCol = atCol * self._charTableCharHeight * self._window._bytes

@@ -62,7 +62,11 @@ drawSquare(xPos,yPos,size,fill=False):
 
 drawCircle(xPos,yPos,radius,fill=False):
 
-# -- Load a image at a given position (need to be same bit depth)
+# -- Load image at given position from raw bytes (need to be same bit depth)
+
+loadRaw(xPos,yPos,width,height,bytes)
+
+# -- Load image at given position (need to be same bit depth)
 
 loadImage(xPos,yPos,file)
 
