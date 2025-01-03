@@ -8,11 +8,11 @@ def img800x600():
 
     start_time = time.time()
 
-    data = FrameBuffer(800,600,32)
+    data = FrameBuffer(800,600,16)
 
     data.setThikness(3)
 
-    data.setColor(0,255,0,False)
+    data.setColor(0,0,0,False)
     data.setWindow(0,800,0,600,False)
 
     data.drawLineH(30,10,-100)
@@ -30,7 +30,6 @@ def img800x600():
     data.setColor(0,0,0,True)
     data.drawCircle(100,100,100,True)
     data.restoreColor(True)
-
 
     data.setColor(0,0,255)
     data.setColor(255,0,0,True)
@@ -52,17 +51,19 @@ def img800x600():
 
     data.setColor(127,127,127)
     data.drawLine(10,100,200,150)
-
     data.flush()
 
 
-    data.loadFont('./FrameBuffer-v0.2/font32bits-20X5.bmp')
+    data.setWindow(400,600,400,600)
+    data.loadImage(1,1,'./FrameBuffer-v0.2/font16bits-20X5.bmp')
+    data.flush()
 
-
+    data.loadFont('./FrameBuffer-v0.2/font16bits-20X5.bmp')
     data.setWindow(50,300,150,165)
     data.setColor(255,0,0,True)
     data.printChars(1,1,'HEllo World!')
     data.flush()
+
 
     data.saveBitmap('output-800x600.bmp')
 

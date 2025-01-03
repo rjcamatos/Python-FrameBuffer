@@ -80,7 +80,7 @@ class MemoryWindow:
 
 class FrameBuffer:
 
-    def __init__(self,columns,rows,bits=32,window=None,endian='little'):
+    def __init__(self,columns,rows,bits=16,window=None,endian='little'):
 
         self._window = window
         if self._window == None: self._window = MemoryWindow()
@@ -116,10 +116,8 @@ class FrameBuffer:
         self._window.setWindow(startX,endX,startY,endY,copy)
 
         if self._fillColor != None and copy == False:
-            for r in range(self._window._windowRows):
-                for c in range(self._window._windowColumns):
-                    for nByte in range(self._window._bytes):
-                        self._window._windowBuffer[r*self._window._windowRowSize+c*self._window._windowColumnSize+nByte] = self._fillColor[nByte]
+            #self._fillColor = bytes(2)
+            self._window._windowBuffer = bytearray( self._fillColor *self._window._windowColumns*self._window._windowRows)
                         
         if self._fillColor == None and copy == False:
             for nByte in range(len(self._window._windowBuffer)):
@@ -130,7 +128,7 @@ class FrameBuffer:
         
         color = None
 
-        if self._window._bits == 8: #--- ? ATENÇÃO AS CORES ESTÃO ERRADAS
+        if self._window._bits == 8: #OK
             encodedData = ((R<<5)&0xE0 | (G<<2)&0X1C | (B>>5)&0x3 )&0xFF
             color = int(encodedData).to_bytes(1,self._endian)
 
@@ -144,9 +142,9 @@ class FrameBuffer:
             color = int( (0xFF<<24|R<<16|G<<8|B) ).to_bytes(4,self._endian)
 
         if isFillColor == False:
-            self._color = bytearray(color)
+            self._color = bytes(color)
         else:
-            self._fillColor = bytearray(color)
+            self._fillColor = bytes(color)
 
     def restoreColor(self,isFillColor=False):
         if isFillColor == False:
@@ -319,6 +317,34 @@ class FrameBuffer:
             angle += inc
 
 
+    def loadImage(self,xPos,yPos,file):
+        image = open(file,'rb')
+
+        image.seek(14) #jump to dib header
+        dib_header = struct.unpack_from('<IIIHHIIIIII',image.read(40))
+
+        if dib_header[4] != self._window._bits:
+            image.close()
+            print("loadImage() WARNING: not same Bit depth !!!")
+            return
+
+        width = dib_header[1]
+        height = dib_header[2]
+        raw = image.read()
+        image.close()
+
+        self._flipV *= -1
+        for r in range(height):
+            if r > self._window._windowRows: break
+            for c in range(width):
+                if c > self._window._windowColumns : break
+                startOffset = self._getOffset(xPos+c,yPos+r)
+                startOffset = int(self._flipH*(startOffset[0]))+int(self._flipV*(startOffset[1]))
+                for nByte in range(self._window._bytes):
+                    self._window._windowBuffer[startOffset+nByte] = raw[ (r*width)*self._window._bytes + (c)*self._window._bytes + nByte]
+        self._flipV *= -1
+
+
     def loadFont(self,file,debug=False):
         self._charTable = open(file,'rb')
         
@@ -327,7 +353,7 @@ class FrameBuffer:
         self._charTableMatrix[1] = int(self._charTableMatrix[1])
 
         self._charTable.seek(14) #jump to dib header
-        dib_header = struct.unpack_from('<I I I H H I I I I I I',self._charTable.read(40))
+        dib_header = struct.unpack_from('<IIIHHIIIIII',self._charTable.read(40))
 
         if dib_header[4] != self._window._bits:
             self._charTable.close()
@@ -336,6 +362,7 @@ class FrameBuffer:
             return
 
         self._charTable = self._charTable.read()
+    
         self._charTableWidth = dib_header[1]
         self._charTableHeight = dib_header[2]
         self._charTableCharWidth = int(self._charTableWidth/self._charTableMatrix[0])
@@ -357,8 +384,8 @@ class FrameBuffer:
         self.setThikness(0)
         sRow = atRow * self._charTableCharWidth * self._charTableWidth * self._window._bytes        
         for r in range(self._charTableCharHeight):
-            sCol = atCol * self._charTableCharHeight * self._window._bytes
             sRow += self._charTableWidth * self._window._bytes
+            sCol = atCol * self._charTableCharHeight * self._window._bytes
             for c in range(self._charTableCharWidth):
                 if self._charTable[-(sRow)+sCol] != 0x00:
                     self.setPixel(xPos+c-1,yPos+r)
@@ -382,7 +409,7 @@ class FrameBuffer:
         out_file = open(file,'wb')
         # --- THE BITMAP HEADER ---
         #--BMP HEADER 14 bytes
-        bmp_header = struct.pack('<2s I 2s 2s I',
+        bmp_header = struct.pack('<2sI2s2sI',
             b'BM',       #BmDescription
             14 + 40,      #FileSize #THE SISZE OF THE HEADER
             b'\x00\x00',  #ApplicationSpecific_1
@@ -390,7 +417,7 @@ class FrameBuffer:
             14+40        #PixelArrayOffset
         )
         #--DIB HEADER 40 bytes
-        dib_header = struct.pack('<I I I H H I I I I I I',
+        dib_header = struct.pack('<IIIHHIIIIII',
             40,                             #DibHeaderBytes
             self._window._columns,          #ImageWidth
             self._window._rows,             #ImageHeight
